@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.ingestion
+package com.finfolio.app.ingestion
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -100,7 +100,7 @@ class PermissionStatusModule(reactContext: ReactApplicationContext) :
             ensureChannel(ctx)
             // Launch MainActivity with the expenseId as an extra so JS can route
             // to ExpenseDetail when the notification is tapped.
-            val launchIntent = Intent(ctx, com.hriks.expensemanager.MainActivity::class.java).apply {
+            val launchIntent = Intent(ctx, com.finfolio.app.MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 action = Intent.ACTION_MAIN
                 addCategory(Intent.CATEGORY_LAUNCHER)

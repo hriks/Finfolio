@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.ingestion
+package com.finfolio.app.ingestion
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -8,7 +8,7 @@ import android.provider.Telephony
 import android.util.Log
 import com.facebook.react.HeadlessJsTaskService
 
-private const val TAG = "ExpenseManager.SMS"
+private const val TAG = "Finfolio.SMS"
 
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.ingestion
+package com.finfolio.app.ingestion
 
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableArray

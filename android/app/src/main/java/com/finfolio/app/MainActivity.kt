@@ -1,4 +1,4 @@
-package com.hriks.expensemanager
+package com.finfolio.app
 
 import android.content.Intent
 import com.facebook.react.ReactActivity
@@ -10,7 +10,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class MainActivity : ReactActivity() {
 
-  override fun getMainComponentName(): String = "ExpenseManager"
+  override fun getMainComponentName(): String = "Finfolio"
 
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)

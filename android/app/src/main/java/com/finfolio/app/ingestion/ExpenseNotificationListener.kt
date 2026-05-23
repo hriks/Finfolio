@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.ingestion
+package com.finfolio.app.ingestion
 
 import android.app.Notification
 import android.content.Intent

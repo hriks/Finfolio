@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.ingestion
+package com.finfolio.app.ingestion
 
 import android.content.Intent
 import android.util.Log
@@ -6,7 +6,7 @@ import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
 
-private const val TAG = "ExpenseManager.Headless"
+private const val TAG = "Finfolio.Headless"
 
 class HeadlessIngestionTaskService : HeadlessJsTaskService() {
     override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig? {

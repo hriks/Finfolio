@@ -1,4 +1,4 @@
-package com.hriks.expensemanager.backup
+package com.finfolio.app.backup
 
 import android.content.Context
 import android.content.Intent
@@ -6,7 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
-import com.hriks.expensemanager.ingestion.HeadlessIngestionTaskService
+import com.finfolio.app.ingestion.HeadlessIngestionTaskService
 
 /**
  * Periodic backup worker.

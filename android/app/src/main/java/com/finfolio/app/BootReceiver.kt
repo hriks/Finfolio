@@ -1,4 +1,4 @@
-package com.hriks.expensemanager
+package com.finfolio.app
 
 import android.content.BroadcastReceiver
 import android.content.Context
