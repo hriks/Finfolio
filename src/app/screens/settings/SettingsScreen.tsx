@@ -360,11 +360,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   card: {
-    backgroundColor: palette.surfaceStrong,
-    borderRadius: radius.lg,
+    backgroundColor: palette.glass,
+    borderRadius: radius.xl,
     paddingVertical: spacing.xs,
     borderWidth: 1,
     borderColor: palette.glassHi,
+    shadowColor: palette.brandGlow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
   },
   row: {
     flexDirection: 'row',

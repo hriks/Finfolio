@@ -54,7 +54,7 @@ export const reverseGeocode = async (lat: number, lon: number): Promise<string |
     const res = await fetch(url, {
       headers: {
         // Nominatim TOS: identify the app.
-        'User-Agent': 'ExpenseManager/1.0 (https://github.com/hriks)',
+        'User-Agent': 'Finfolio/1.1 (https://github.com/hriks)',
         Accept: 'application/json',
       },
     });

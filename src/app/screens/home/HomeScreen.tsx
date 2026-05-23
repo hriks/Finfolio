@@ -86,6 +86,7 @@ export const HomeScreen: React.FC = () => {
   const pagerRef = React.useRef<FlatList<number>>(null);
   const timelineRef = React.useRef<FlatList<number>>(null);
 
+  const lastScanRef = React.useRef<number>(0);
   const doRefresh = React.useCallback(() => {
     refreshExpenses();
     refreshSettings();
@@ -94,6 +95,13 @@ export const HomeScreen: React.FC = () => {
     fetchPermissionStatus()
       .then(setPermStatus)
       .catch(() => setPermStatus(null));
+    // Pull-to-refresh also triggers an SMS rescan, but throttled to once every
+    // 5 minutes so rapid pulls don't keep the "Scanning inbox…" banner alive.
+    const now = Date.now();
+    if (now - lastScanRef.current > 5 * 60 * 1000) {
+      lastScanRef.current = now;
+      void startSmsScan();
+    }
   }, [refreshExpenses, refreshSettings]);
 
   React.useEffect(() => {
@@ -478,13 +486,11 @@ const DayPage: React.FC<DayPageProps> = React.memo(function DayPage(props) {
           title={isCurrent ? 'Nothing logged today' : 'No transactions on this day'}
           body={
             isCurrent
-              ? 'Add an expense, or import recent SMS to populate the ledger.'
+              ? 'Add an expense, or pull down to sync recent SMS into the ledger.'
               : 'Swipe right to see other days.'
           }
           actionLabel={isCurrent ? 'Add Expense' : undefined}
           onAction={isCurrent ? onAdd : undefined}
-          secondaryLabel={isCurrent && !scanning ? 'Sync from SMS inbox' : undefined}
-          onSecondary={isCurrent && !scanning ? onSync : undefined}
         />
       ) : (
         expenses.map((e) => (

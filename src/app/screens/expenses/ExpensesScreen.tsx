@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   search: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: palette.surfaceStrong,
+    backgroundColor: palette.glass,
     color: palette.text,
     borderRadius: radius.md,
     fontSize: font.md,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: palette.surfaceStrong,
+    backgroundColor: palette.glass,
     borderWidth: 1,
     borderColor: palette.glassHi,
     justifyContent: 'center',
