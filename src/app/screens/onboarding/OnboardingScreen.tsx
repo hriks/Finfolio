@@ -101,8 +101,8 @@ export const OnboardingScreen: React.FC = () => {
         <View style={styles.heroRow}>
           <Image source={LOGO} style={styles.logo} resizeMode="contain" />
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Expense Manager</Text>
-            <Text style={styles.tagline}>Local-first spend tracker</Text>
+            <Text style={styles.title}>Finfolio</Text>
+            <Text style={styles.tagline}>Your personal finance ledger</Text>
           </View>
         </View>
         <Text style={styles.body}>
