@@ -212,6 +212,19 @@ export const createDedupService = (deps: { db: Database; clock: Clock }): DedupS
     return best ?? undefined;
   };
 
+  // True when the normalized merchant maps to a known categorizer rule — that
+  // identifies the friendly brand name (e.g. "rapido" matches a rule, while
+  // "roppen transportation" does not). Used when merging two events to keep
+  // the recognizable brand surfaced over the bank-leg legal name.
+  const hasMerchantRule = (norm: string | null): boolean => {
+    if (!norm) return false;
+    const row = db.get<{ c: number }>(
+      'SELECT COUNT(*) AS c FROM merchant_rules WHERE merchant_norm = ?',
+      [norm],
+    );
+    return (row?.c ?? 0) > 0;
+  };
+
   const merge: DedupService['merge'] = (existingId, incoming) => {
     const now = clock.now();
     const cur = db.get<Record<string, unknown>>(`SELECT ${COLUMNS} FROM expenses WHERE id = ?`, [
@@ -221,8 +234,18 @@ export const createDedupService = (deps: { db: Database; clock: Clock }): DedupS
     const existing = rowToExpense(cur);
 
     const mergedMsg = [existing.sourceMsg, incoming.sourceMsg].filter(Boolean).join('\n---\n');
-    const newMerchantRaw = incoming.merchantRaw ?? existing.merchantRaw;
-    const newMerchantNorm = incoming.merchantNorm || existing.merchantNorm || '';
+    // Prefer the merchant identity that maps to a known rule (= recognizable
+    // brand). Falls back to incoming when neither side has a rule, preserving
+    // prior behavior.
+    const existingHasRule = hasMerchantRule(existing.merchantNorm);
+    const incomingHasRule = hasMerchantRule(incoming.merchantNorm);
+    const preferExisting = existingHasRule && !incomingHasRule;
+    const newMerchantRaw = preferExisting
+      ? existing.merchantRaw
+      : (incoming.merchantRaw ?? existing.merchantRaw);
+    const newMerchantNorm = preferExisting
+      ? (existing.merchantNorm ?? '')
+      : (incoming.merchantNorm || existing.merchantNorm || '');
     const newOccurred = Math.min(existing.occurredAt, incoming.occurredAt);
     const newConfidence = Math.max(existing.confidence, incoming.confidence);
 

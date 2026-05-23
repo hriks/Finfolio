@@ -37,8 +37,6 @@ import {
   type PermissionStatus,
 } from '../../native/permission-status';
 import { tapHaptic } from '../../haptic';
-import { startSmsScan } from '../../sync';
-import { useScanStore } from '../../stores/scan';
 import type { RootStackParamList, HomeStackParamList } from '../../navigation';
 import type { Category, Expense } from '../../../types/domain';
 
@@ -78,7 +76,6 @@ export const HomeScreen: React.FC = () => {
   const [, setLastBackup] = React.useState<number | null>(null);
   const [dismissed, setDismissed] = React.useState<Record<string, boolean>>({});
   const [permStatus, setPermStatus] = React.useState<PermissionStatus | null>(null);
-  const scanning = useScanStore((s) => s.scanning);
 
   // Pager state. `today` is locked at mount so all index math is stable.
   const todayRef = React.useRef<Date>(startOfDay(new Date()));
@@ -86,7 +83,6 @@ export const HomeScreen: React.FC = () => {
   const pagerRef = React.useRef<FlatList<number>>(null);
   const timelineRef = React.useRef<FlatList<number>>(null);
 
-  const lastScanRef = React.useRef<number>(0);
   const doRefresh = React.useCallback(() => {
     refreshExpenses();
     refreshSettings();
@@ -95,13 +91,6 @@ export const HomeScreen: React.FC = () => {
     fetchPermissionStatus()
       .then(setPermStatus)
       .catch(() => setPermStatus(null));
-    // Pull-to-refresh also triggers an SMS rescan, but throttled to once every
-    // 5 minutes so rapid pulls don't keep the "Scanning inbox…" banner alive.
-    const now = Date.now();
-    if (now - lastScanRef.current > 5 * 60 * 1000) {
-      lastScanRef.current = now;
-      void startSmsScan();
-    }
   }, [refreshExpenses, refreshSettings]);
 
   React.useEffect(() => {
@@ -217,14 +206,12 @@ export const HomeScreen: React.FC = () => {
           cats={cats}
           refreshing={loading}
           onRefresh={doRefresh}
-          scanning={scanning}
           onAdd={() => nav.navigate('AddSheet')}
-          onSync={() => void startSmsScan()}
           onOpenExpense={(id) => nav.navigate('ExpenseDetail', { id })}
         />
       );
     },
-    [dailyBuckets, screenW, cats, loading, doRefresh, scanning, nav],
+    [dailyBuckets, screenW, cats, loading, doRefresh, nav],
   );
 
   const renderTimelinePill = React.useCallback(
@@ -353,10 +340,8 @@ interface DayPageProps {
   sparkline: number[];
   cats: Record<string, Category>;
   refreshing: boolean;
-  scanning: boolean;
   onRefresh: () => void;
   onAdd: () => void;
-  onSync: () => void;
   onOpenExpense: (id: string) => void;
 }
 
@@ -369,10 +354,8 @@ const DayPage: React.FC<DayPageProps> = React.memo(function DayPage(props) {
     sparkline,
     cats,
     refreshing,
-    scanning,
     onRefresh,
     onAdd,
-    onSync,
     onOpenExpense,
   } = props;
 
@@ -486,7 +469,7 @@ const DayPage: React.FC<DayPageProps> = React.memo(function DayPage(props) {
           title={isCurrent ? 'Nothing logged today' : 'No transactions on this day'}
           body={
             isCurrent
-              ? 'Add an expense, or pull down to sync recent SMS into the ledger.'
+              ? 'Add an expense to start tracking. SMS imports happen in the background.'
               : 'Swipe right to see other days.'
           }
           actionLabel={isCurrent ? 'Add Expense' : undefined}

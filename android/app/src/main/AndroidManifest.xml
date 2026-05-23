@@ -37,6 +37,10 @@
           android:name=".ingestion.HeadlessIngestionTaskService"
           android:exported="false"/>
 
+      <service
+          android:name=".backup.HeadlessBackupTaskService"
+          android:exported="false"/>
+
       <receiver
           android:name=".ingestion.SmsReceiver"
           android:exported="true"
