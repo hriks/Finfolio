@@ -1,5 +1,6 @@
 import { startOfDay, endOfDay } from 'date-fns';
-import { periodWindow } from '../../src/app/screens/insights/insights-data';
+import { periodWindow, buildBarBuckets } from '../../src/app/screens/insights/insights-data';
+import type { Expense } from '../../src/types/domain';
 
 // Saturday 2026-07-18 14:30 local time
 const NOW = new Date(2026, 6, 18, 14, 30, 0);
@@ -49,5 +50,115 @@ describe('periodWindow', () => {
     const w = periodWindow('custom', NOW, null);
     expect(w.start).toBe(startOfDay(NOW).getTime());
     expect(w.end).toBe(endOfDay(NOW).getTime());
+  });
+});
+
+const exp = (
+  occurredAt: number,
+  amountMinor: number,
+  status: Expense['status'] = 'active',
+): Expense => ({
+  id: `e-${occurredAt}-${amountMinor}`,
+  amountMinor,
+  currency: 'INR',
+  occurredAt,
+  createdAt: occurredAt,
+  updatedAt: occurredAt,
+  merchantRaw: null,
+  merchantNorm: null,
+  categoryId: null,
+  source: 'manual',
+  sourceRef: null,
+  sourceMsg: null,
+  confidence: 1,
+  status,
+  note: null,
+  photoPath: null,
+  dedupKey: null,
+  verifiedBy: 1,
+  locationLat: null,
+  locationLon: null,
+  locationName: null,
+  subcategory: null,
+});
+
+describe('buildBarBuckets', () => {
+  const win = (p: 'week' | 'month' | 'year' | 'all') => periodWindow(p, NOW);
+
+  it('week = 7 daily buckets ending today', () => {
+    const items = [
+      exp(new Date(2026, 6, 12, 10, 0).getTime(), 10_000), // 6 days ago → first bucket
+      exp(new Date(2026, 6, 18, 9, 0).getTime(), 5_000), // today → last bucket
+    ];
+    const b = buildBarBuckets(items, 'week', NOW, win('week'));
+    expect(b).toHaveLength(7);
+    expect(b[0].value).toBe(100);
+    expect(b[6].value).toBe(50);
+    expect(b[6].fullLabel).toBe('Sat, Jul 18');
+  });
+
+  it('excludes non-active expenses', () => {
+    const items = [
+      exp(new Date(2026, 6, 18, 9, 0).getTime(), 5_000, 'void'),
+      exp(new Date(2026, 6, 18, 10, 0).getTime(), 2_000, 'pending_review'),
+    ];
+    const b = buildBarBuckets(items, 'week', NOW, win('week'));
+    expect(b[6].value).toBe(0);
+  });
+
+  it('custom ≤31 days = one daily bucket per day of the window, aligned to the window', () => {
+    // June 2026 (30 days), NOT relative to today.
+    const range = periodWindow('custom', NOW, {
+      start: new Date(2026, 5, 1).getTime(),
+      end: new Date(2026, 5, 30).getTime(),
+    });
+    const items = [
+      exp(new Date(2026, 5, 1, 12, 0).getTime(), 30_000),
+      exp(new Date(2026, 5, 30, 23, 0).getTime(), 7_000),
+      exp(new Date(2026, 6, 2, 12, 0).getTime(), 99_900), // outside window → nowhere
+    ];
+    const b = buildBarBuckets(items, 'custom', NOW, range);
+    expect(b).toHaveLength(30);
+    expect(b[0].value).toBe(300);
+    expect(b[0].fullLabel).toBe('Mon, Jun 1');
+    expect(b[29].value).toBe(70);
+    expect(b.reduce((s, x) => s + x.value, 0)).toBe(370);
+  });
+
+  it('custom >31 days = one bucket per calendar month touched by the window', () => {
+    const range = periodWindow('custom', NOW, {
+      start: new Date(2026, 3, 15).getTime(), // Apr 15
+      end: new Date(2026, 5, 10).getTime(), // Jun 10
+    });
+    const items = [
+      exp(new Date(2026, 3, 20).getTime(), 10_000), // Apr
+      exp(new Date(2026, 4, 5).getTime(), 20_000), // May
+      exp(new Date(2026, 5, 5).getTime(), 40_000), // Jun
+      exp(new Date(2026, 3, 10).getTime(), 99_900), // Apr but BEFORE window start → excluded
+    ];
+    const b = buildBarBuckets(items, 'custom', NOW, range);
+    expect(b).toHaveLength(3);
+    expect(b.map((x) => x.label)).toEqual(['Apr', 'May', 'Jun']);
+    expect(b[0].value).toBe(100);
+    expect(b[0].fullLabel).toBe('Apr 2026');
+    expect(b[1].value).toBe(200);
+    expect(b[2].value).toBe(400);
+  });
+
+  it('custom of exactly 31 days stays daily', () => {
+    const range = periodWindow('custom', NOW, {
+      start: new Date(2026, 4, 1).getTime(),
+      end: new Date(2026, 4, 31).getTime(),
+    });
+    const b = buildBarBuckets([], 'custom', NOW, range);
+    expect(b).toHaveLength(31);
+  });
+
+  it('year = 12 trailing month buckets', () => {
+    const items = [exp(new Date(2026, 6, 10).getTime(), 12_300)];
+    const b = buildBarBuckets(items, 'year', NOW, win('year'));
+    expect(b).toHaveLength(12);
+    expect(b[11].label).toBe('Jul');
+    expect(b[11].value).toBe(123);
   });
 });
