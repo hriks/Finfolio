@@ -91,6 +91,89 @@ const RULES: Rule[] = [
   { merchant: 'donation', categoryId: 'cat-gifts' },
   { merchant: 'akshaya patra', categoryId: 'cat-gifts' },
   { merchant: 'goonj', categoryId: 'cat-gifts' },
+  //
+  // ---- Rules promoted from real usage (user-taught, origin stays 'bundled' here) ----
+  // Matching is exact-first then substring (incoming merchant_norm must CONTAIN the
+  // rule string — see src/services/categorizer/rules.ts), so short forms below also
+  // cover truncated norms like 'bigtree entertainment pri' / 'zerodha broking limited'.
+  // 'netflix com' is intentionally NOT added: the existing 'netflix' rule already
+  // matches it via substring.
+  { merchant: 'ekart', categoryId: 'cat-shopping' },
+  { merchant: 'amazon pay later', categoryId: 'cat-shopping' },
+  { merchant: 'redcliffe labs', categoryId: 'cat-medical' },
+  { merchant: 'agrawal medical store', categoryId: 'cat-medical' },
+  { merchant: 'bookmyshow', categoryId: 'cat-entertainment' },
+  // BookMyShow's legal entity; covers the truncated norm 'bigtree entertainment pri'.
+  { merchant: 'bigtree entertainment', categoryId: 'cat-entertainment' },
+  // Covers 'zerodha broking limited' and any other Zerodha norm via substring.
+  { merchant: 'zerodha', categoryId: 'cat-investments' },
+  // Normalization artifact of 'LIC OF INDIA' — observed norm is exactly 'lic of',
+  // and the substring rule also covers fuller norms like 'lic of india'.
+  { merchant: 'lic of', categoryId: 'cat-insurance' },
+  { merchant: 'indane', categoryId: 'cat-bills' },
+  { merchant: 'claude', categoryId: 'cat-subscriptions' },
+  { merchant: 'anthropic claude sub', categoryId: 'cat-subscriptions' },
+  { merchant: 'google workspace', categoryId: 'cat-subscriptions' },
+  { merchant: 'godaddy', categoryId: 'cat-subscriptions' },
+  { merchant: 'om automobiles', categoryId: 'cat-fuel' },
+  { merchant: 'badri gulab and sons', categoryId: 'cat-fuel' },
+  { merchant: 'bir and sons', categoryId: 'cat-fuel' },
+  { merchant: 'malnad coffee house', categoryId: 'cat-food' },
+  { merchant: 'kallusweetsandnamkeen', categoryId: 'cat-food' },
+  { merchant: 'm s kallu ram confectione', categoryId: 'cat-food' },
+  //
+  // ---- Personal payees learned from usage ----
+  // Person-name UPI payees the user consistently categorized. Deliberately EXCLUDED:
+  // 'web upi' (generic payment rail), 'civil lines' (location — was an ATM
+  // withdrawal), 'phonepe' (payment rail; would miscategorize everything paid via
+  // PhonePe).
+  // Gifts & Donations
+  { merchant: 'ashwini manish gupta', categoryId: 'cat-gifts' },
+  { merchant: 'sarita gupta', categoryId: 'cat-gifts' },
+  { merchant: 'navya shree d', categoryId: 'cat-gifts' },
+  // Travel (merged into Transport — cat-travel no longer exists)
+  { merchant: 'kashi prasad', categoryId: 'cat-transport' },
+  { merchant: 'basavaraj meda', categoryId: 'cat-transport' },
+  { merchant: 'r deepak singh', categoryId: 'cat-transport' },
+  { merchant: 'kishan mali', categoryId: 'cat-transport' },
+  { merchant: 'revansiddappa', categoryId: 'cat-transport' },
+  { merchant: 'sunil g', categoryId: 'cat-transport' },
+  { merchant: 'bhabani shankar behera', categoryId: 'cat-transport' },
+  { merchant: 'guru prasad b', categoryId: 'cat-transport' },
+  { merchant: 'lawrence p b', categoryId: 'cat-transport' },
+  { merchant: 'rohan kumar rauniyar', categoryId: 'cat-transport' },
+  // SIN
+  { merchant: 'ravi pan bhandar', categoryId: 'cat-vices' },
+  { merchant: 'dharm nath yadav', categoryId: 'cat-vices' },
+  { merchant: 'ramvilas yadavram sundari', categoryId: 'cat-vices' },
+  { merchant: 'vinod k kesharwani', categoryId: 'cat-vices' },
+  { merchant: 'shivranjan kumar', categoryId: 'cat-vices' },
+  { merchant: 'pradeep kumar s o ba', categoryId: 'cat-vices' },
+  { merchant: 'kapil giri', categoryId: 'cat-vices' },
+  { merchant: 'prem chandra chaurasia', categoryId: 'cat-vices' },
+  // Groceries
+  { merchant: 'sunil yadav', categoryId: 'cat-groceries' },
+  { merchant: 'amit k srivastava', categoryId: 'cat-groceries' },
+  { merchant: 'mr jageshwar prasa', categoryId: 'cat-groceries' },
+  { merchant: 'sahib khan', categoryId: 'cat-groceries' },
+  // Food
+  { merchant: 'mr md shahid', categoryId: 'cat-food' },
+  { merchant: 'md samim', categoryId: 'cat-food' },
+  { merchant: 'himayou raza', categoryId: 'cat-food' },
+  { merchant: 'santosh kumar gupta', categoryId: 'cat-food' },
+  { merchant: 'aashib beg', categoryId: 'cat-food' },
+  { merchant: 'chiken wala', categoryId: 'cat-food' },
+  // Fuel
+  { merchant: 'mr mohammad maksud alam', categoryId: 'cat-fuel' },
+  { merchant: 'narayan singh chauhan', categoryId: 'cat-fuel' },
+  // Education
+  { merchant: 'rajat mishra', categoryId: 'cat-education' },
+  { merchant: 'uttar pradesh subordinate', categoryId: 'cat-education' },
+  // Investments
+  { merchant: 'ashutosh giri', categoryId: 'cat-investments' },
+  { merchant: 'ntagic software', categoryId: 'cat-investments' },
+  // Bills
+  { merchant: 'pranjal pandey', categoryId: 'cat-bills' },
 ];
 
 export const seedMerchantRules = (db: Database): void => {

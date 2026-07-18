@@ -31,6 +31,46 @@ describe('rule-based categorizer', () => {
     expect(r.confidence).toBe(1.0);
   });
 
+  it('newly promoted usage rules fire through the real categorizer', () => {
+    const db = makeSeededDb();
+    const cat = createRuleCategorizer({ db });
+
+    // Exact bundled matches for observed merchant_norm strings.
+    expect(cat.categorize('ekart')).toMatchObject({
+      categoryId: 'cat-shopping',
+      source: 'bundled_rule',
+    });
+    expect(cat.categorize('ravi pan bhandar')).toMatchObject({
+      categoryId: 'cat-vices',
+      source: 'bundled_rule',
+    });
+    expect(cat.categorize('lic of')).toMatchObject({
+      categoryId: 'cat-insurance',
+      source: 'bundled_rule',
+    });
+
+    // Observed norms that only contain the seeded rule fire via substring.
+    expect(cat.categorize('bigtree entertainment pri')).toMatchObject({
+      categoryId: 'cat-entertainment',
+      source: 'bundled_rule',
+    });
+    expect(cat.categorize('zerodha broking limited')).toMatchObject({
+      categoryId: 'cat-investments',
+      source: 'bundled_rule',
+    });
+    expect(cat.categorize('anthropic claude sub')).toMatchObject({
+      categoryId: 'cat-subscriptions',
+      source: 'bundled_rule',
+    });
+
+    // 'netflix com' needs no new rule: existing 'netflix' matches by substring.
+    expect(cat.categorize('netflix com')).toMatchObject({
+      categoryId: 'cat-subscriptions',
+      source: 'bundled_rule',
+    });
+    db.close();
+  });
+
   it('returns Uncategorized when no match', () => {
     const db = makeSeededDb();
     const cat = createRuleCategorizer({ db });

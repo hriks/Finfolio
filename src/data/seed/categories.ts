@@ -42,3 +42,5 @@ export const seedCategories = (db: Database): void => {
 };
 
 export const UNCATEGORIZED_ID = 'cat-uncategorized';
+
+export const SEED_CATEGORY_COUNT = CATEGORIES.length;

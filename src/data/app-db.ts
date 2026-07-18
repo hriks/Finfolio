@@ -1,6 +1,6 @@
 import { createOpSqliteDriver } from './opsqlite-driver';
 import { runMigrations } from './migrate';
-import { seedCategories } from './seed/categories';
+import { seedCategories, SEED_CATEGORY_COUNT } from './seed/categories';
 import { seedMerchantRules } from './seed/merchant-rules';
 import { seedMergePatterns } from './seed/merge-patterns';
 import type { Database } from './database';
@@ -26,7 +26,7 @@ const ensureSeeded = (db: Database): void => {
   const count = db.get<{ c: number }>('SELECT COUNT(*) AS c FROM categories')?.c ?? 0;
   // eslint-disable-next-line no-console
   console.log(`[init] categories count after seed: ${count}`);
-  if (count < 25) {
+  if (count < SEED_CATEGORY_COUNT) {
     // eslint-disable-next-line no-console
     console.warn(`[init] categories table only has ${count} rows; retrying seed`);
     seedCategories(db);
