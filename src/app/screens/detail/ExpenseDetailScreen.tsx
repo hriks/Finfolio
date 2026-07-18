@@ -59,6 +59,7 @@ export const ExpenseDetailScreen: React.FC = () => {
   const [editMerchant, setEditMerchant] = React.useState('');
   const [editNote, setEditNote] = React.useState('');
   const [editAmount, setEditAmount] = React.useState('');
+  const [amountEditing, setAmountEditing] = React.useState(false);
   const [editSubcategory, setEditSubcategory] = React.useState('');
   const [showRaw, setShowRaw] = React.useState(false);
 
@@ -220,6 +221,7 @@ export const ExpenseDetailScreen: React.FC = () => {
   };
 
   const onAmountBlur = () => {
+    setAmountEditing(false);
     const parsed = parseRupees(editAmount);
     if (parsed !== null && parsed !== expense.amountMinor) {
       saveField({ amountMinor: parsed });
@@ -349,18 +351,6 @@ export const ExpenseDetailScreen: React.FC = () => {
           />
         </Section>
 
-        <Section title="Amount">
-          <TextInput
-            style={styles.input}
-            value={editAmount}
-            onChangeText={setEditAmount}
-            onBlur={onAmountBlur}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={palette.muted}
-          />
-        </Section>
-
         <Section title="Category">
           <Pressable style={styles.pickerRow} onPress={() => setShowCatPicker(true)}>
             {cat ? (
@@ -433,9 +423,36 @@ export const ExpenseDetailScreen: React.FC = () => {
           <Text style={styles.summaryLabel}>
             {isPending ? "You're approving" : isVoid ? 'Voided' : 'Amount'}
           </Text>
-          <Text style={styles.summaryAmount}>
-            {formatAmount(expense.amountMinor, expense.currency)}
-          </Text>
+          {amountEditing ? (
+            <TextInput
+              style={[styles.summaryAmount, styles.summaryAmountInput]}
+              value={editAmount}
+              onChangeText={setEditAmount}
+              onBlur={onAmountBlur}
+              onSubmitEditing={onAmountBlur}
+              keyboardType="numeric"
+              autoFocus
+              selectTextOnFocus
+            />
+          ) : (
+            <View style={styles.summaryAmountRow}>
+              <Text style={styles.summaryAmount}>
+                {formatAmount(expense.amountMinor, expense.currency)}
+              </Text>
+              {!isVoid ? (
+                <Pressable
+                  onPress={() => {
+                    setEditAmount(formatRupeesForInput(expense.amountMinor));
+                    setAmountEditing(true);
+                  }}
+                  hitSlop={10}
+                  style={styles.summaryAmountEditBtn}
+                >
+                  <Icon name="edit" size={18} color={palette.muted} />
+                </Pressable>
+              ) : null}
+            </View>
+          )}
           <Text style={styles.summaryMerchant} numberOfLines={1}>
             {expense.merchantRaw ?? 'Unknown merchant'}
           </Text>
@@ -662,6 +679,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     lineHeight: 52,
   },
+  summaryAmountRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  summaryAmountInput: { padding: 0, minWidth: 140 },
+  summaryAmountEditBtn: { marginTop: 6 },
   summaryMerchant: {
     color: palette.text,
     fontSize: font.lg,
