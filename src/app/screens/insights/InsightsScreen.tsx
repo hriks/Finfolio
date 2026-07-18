@@ -5,16 +5,14 @@ import { PieChart, BarChart } from 'react-native-gifted-charts';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_INNER_WIDTH = SCREEN_WIDTH - 32 /* outer margins */ - 32 /* card padding */;
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import {
-  format,
-  startOfDay,
-  startOfMonth,
-  startOfYear,
-  subDays,
-  subMonths,
-  isSameDay,
-  endOfDay,
-} from 'date-fns';
+  periodWindow,
+  buildBarBuckets,
+  type Period,
+  type CustomRange,
+  type Bucket,
+} from './insights-data';
 
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,7 +26,6 @@ import type { Category, Expense } from '../../../types/domain';
 import type { RootStackParamList } from '../../navigation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Period = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'all';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -55,37 +52,6 @@ class InsightsBoundary extends React.Component<{ children: React.ReactNode }, Er
   }
 }
 
-const periodWindow = (p: Period, now: Date): { start: number; end: number; label: string } => {
-  switch (p) {
-    case 'today': {
-      const s = startOfDay(now).getTime();
-      const e = endOfDay(now).getTime();
-      return { start: s, end: e, label: `Today, ${format(now, 'MMM d')}` };
-    }
-    case 'yesterday': {
-      const y = subDays(now, 1);
-      const s = startOfDay(y).getTime();
-      const e = endOfDay(y).getTime();
-      return { start: s, end: e, label: `Yesterday, ${format(y, 'MMM d')}` };
-    }
-    case 'week': {
-      const start = startOfDay(subDays(now, 6)).getTime();
-      return { start, end: endOfDay(now).getTime(), label: 'Last 7 days' };
-    }
-    case 'month': {
-      const start = startOfMonth(now).getTime();
-      return { start, end: endOfDay(now).getTime(), label: format(now, 'MMMM yyyy') };
-    }
-    case 'year': {
-      const start = startOfYear(now).getTime();
-      return { start, end: endOfDay(now).getTime(), label: format(now, 'yyyy') };
-    }
-    case 'all':
-    default:
-      return { start: 0, end: endOfDay(now).getTime(), label: 'All time' };
-  }
-};
-
 const PeriodPill: React.FC<{ label: string; active: boolean; onPress: () => void }> = ({
   label,
   active,
@@ -108,6 +74,33 @@ const InsightsInner: React.FC = () => {
   const refresh = useExpensesStore((s) => s.refresh);
   const [cats, setCats] = React.useState<Record<string, Category>>({});
   const [period, setPeriod] = React.useState<Period>('month');
+  const [customRange, setCustomRange] = React.useState<CustomRange | null>(null);
+
+  // Two-step native picker: start date, then end date. Cancelling either step
+  // leaves the currently active period untouched (state only changes on 'set').
+  const openCustomRangePicker = () => {
+    const today = new Date();
+    DateTimePickerAndroid.open({
+      value: new Date(customRange?.start ?? today.getTime()),
+      mode: 'date',
+      maximumDate: today,
+      onChange: (startEvent, pickedStart) => {
+        if (startEvent.type !== 'set' || !pickedStart) return;
+        const prevEnd = customRange?.end ?? 0;
+        DateTimePickerAndroid.open({
+          value: new Date(Math.max(pickedStart.getTime(), prevEnd)),
+          mode: 'date',
+          minimumDate: pickedStart,
+          maximumDate: today,
+          onChange: (endEvent, pickedEnd) => {
+            if (endEvent.type !== 'set' || !pickedEnd) return;
+            setCustomRange({ start: pickedStart.getTime(), end: pickedEnd.getTime() });
+            setPeriod('custom');
+          },
+        });
+      },
+    });
+  };
 
   React.useEffect(() => {
     refresh();
@@ -115,7 +108,7 @@ const InsightsInner: React.FC = () => {
   }, [refresh]);
 
   const now = new Date();
-  const win = periodWindow(period, now);
+  const win = periodWindow(period, now, customRange);
 
   const inWindow = (e: Expense): boolean =>
     e.status === 'active' && e.occurredAt >= win.start && e.occurredAt <= win.end;
@@ -137,54 +130,7 @@ const InsightsInner: React.FC = () => {
     }))
     .sort((a, b) => b.value - a.value);
 
-  // Bar: bucket by day for week/month, by month for year, by year for all-time (best effort).
-  // `fullLabel` carries the human-readable date for the focused-bar tooltip.
-  type Bucket = { value: number; label: string; fullLabel: string };
-  const barData: Bucket[] = (() => {
-    if (period === 'week' || period === 'month') {
-      const days = period === 'week' ? 7 : 30;
-      const out: Bucket[] = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const day = startOfDay(subDays(now, i));
-        const s = day.getTime();
-        const e = endOfDay(day).getTime();
-        const sum = items
-          .filter((x) => x.status === 'active' && x.occurredAt >= s && x.occurredAt <= e)
-          .reduce((a, x) => a + x.amountMinor, 0);
-        out.push({
-          value: sum / 100,
-          label: i % Math.max(1, Math.floor(days / 6)) === 0 ? format(day, 'd') : '',
-          fullLabel: format(day, 'EEE, MMM d'),
-        });
-      }
-      return out;
-    }
-    if (period === 'year') {
-      const out: Bucket[] = [];
-      for (let i = 11; i >= 0; i--) {
-        const ms = startOfMonth(subMonths(now, i));
-        const s = ms.getTime();
-        const e = startOfMonth(subMonths(now, i - 1)).getTime();
-        const sum = items
-          .filter((x) => x.status === 'active' && x.occurredAt >= s && x.occurredAt < e)
-          .reduce((a, x) => a + x.amountMinor, 0);
-        out.push({ value: sum / 100, label: format(ms, 'MMM'), fullLabel: format(ms, 'MMM yyyy') });
-      }
-      return out;
-    }
-    // all-time: 12 month buckets
-    const out: Bucket[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const ms = startOfMonth(subMonths(now, i));
-      const s = ms.getTime();
-      const e = startOfMonth(subMonths(now, i - 1)).getTime();
-      const sum = items
-        .filter((x) => x.status === 'active' && x.occurredAt >= s && x.occurredAt < e)
-        .reduce((a, x) => a + x.amountMinor, 0);
-      out.push({ value: sum / 100, label: format(ms, 'MMM'), fullLabel: format(ms, 'MMM yyyy') });
-    }
-    return out;
-  })();
+  const barData: Bucket[] = buildBarBuckets(items, period, now, win);
 
   // Tap-to-focus state for both charts.
   const [pieFocusedIdx, setPieFocusedIdx] = React.useState<number | null>(null);
@@ -225,6 +171,11 @@ const InsightsInner: React.FC = () => {
         <PeriodPill label="Month" active={period === 'month'} onPress={() => setPeriod('month')} />
         <PeriodPill label="Year" active={period === 'year'} onPress={() => setPeriod('year')} />
         <PeriodPill label="All" active={period === 'all'} onPress={() => setPeriod('all')} />
+        <PeriodPill
+          label="Custom"
+          active={period === 'custom'}
+          onPress={openCustomRangePicker}
+        />
       </ScrollView>
 
       <View style={styles.section}>
