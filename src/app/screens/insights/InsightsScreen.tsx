@@ -167,9 +167,8 @@ const InsightsInner: React.FC = () => {
       >
         <PeriodPill label="Today" active={period === 'today'} onPress={() => setPeriod('today')} />
         <PeriodPill label="Yesterday" active={period === 'yesterday'} onPress={() => setPeriod('yesterday')} />
-        <PeriodPill label="7d" active={period === 'week'} onPress={() => setPeriod('week')} />
         <PeriodPill label="Month" active={period === 'month'} onPress={() => setPeriod('month')} />
-        <PeriodPill label="Year" active={period === 'year'} onPress={() => setPeriod('year')} />
+        <PeriodPill label="Last Month" active={period === 'lastMonth'} onPress={() => setPeriod('lastMonth')} />
         <PeriodPill label="All" active={period === 'all'} onPress={() => setPeriod('all')} />
         <PeriodPill
           label="Custom"

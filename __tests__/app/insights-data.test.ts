@@ -13,11 +13,11 @@ describe('periodWindow', () => {
     expect(w.label).toBe('July 2026');
   });
 
-  it('week = last 7 days inclusive of today', () => {
-    const w = periodWindow('week', NOW);
-    expect(w.start).toBe(startOfDay(new Date(2026, 6, 12)).getTime());
-    expect(w.end).toBe(endOfDay(NOW).getTime());
-    expect(w.label).toBe('Last 7 days');
+  it('lastMonth = previous calendar month start to end', () => {
+    const w = periodWindow('lastMonth', NOW);
+    expect(w.start).toBe(startOfDay(new Date(2026, 5, 1)).getTime());
+    expect(w.end).toBe(endOfDay(new Date(2026, 5, 30)).getTime());
+    expect(w.label).toBe('June 2026');
   });
 
   it('custom clamps to start-of-day / end-of-day', () => {
@@ -83,27 +83,15 @@ const exp = (
 });
 
 describe('buildBarBuckets', () => {
-  const win = (p: 'week' | 'month' | 'year' | 'all') => periodWindow(p, NOW);
-
-  it('week = 7 daily buckets ending today', () => {
-    const items = [
-      exp(new Date(2026, 6, 12, 10, 0).getTime(), 10_000), // 6 days ago → first bucket
-      exp(new Date(2026, 6, 18, 9, 0).getTime(), 5_000), // today → last bucket
-    ];
-    const b = buildBarBuckets(items, 'week', NOW, win('week'));
-    expect(b).toHaveLength(7);
-    expect(b[0].value).toBe(100);
-    expect(b[6].value).toBe(50);
-    expect(b[6].fullLabel).toBe('Sat, Jul 18');
-  });
+  const win = (p: 'month' | 'lastMonth' | 'all') => periodWindow(p, NOW);
 
   it('excludes non-active expenses', () => {
     const items = [
       exp(new Date(2026, 6, 18, 9, 0).getTime(), 5_000, 'void'),
       exp(new Date(2026, 6, 18, 10, 0).getTime(), 2_000, 'pending_review'),
     ];
-    const b = buildBarBuckets(items, 'week', NOW, win('week'));
-    expect(b[6].value).toBe(0);
+    const b = buildBarBuckets(items, 'month', NOW, win('month'));
+    expect(b[b.length - 1].value).toBe(0);
   });
 
   it('custom ≤31 days = one daily bucket per day of the window, aligned to the window', () => {
@@ -122,6 +110,22 @@ describe('buildBarBuckets', () => {
     expect(b[0].value).toBe(300);
     expect(b[0].fullLabel).toBe('Mon, Jun 1');
     expect(b[29].value).toBe(70);
+    expect(b.reduce((s, x) => s + x.value, 0)).toBe(370);
+  });
+
+  it('lastMonth = one daily bucket per day of the previous month, aligned to the window', () => {
+    // June 2026 has 30 days.
+    const items = [
+      exp(new Date(2026, 5, 1, 12, 0).getTime(), 30_000), // Jun 1 → first bucket
+      exp(new Date(2026, 5, 30, 23, 0).getTime(), 7_000), // Jun 30 → last bucket
+      exp(new Date(2026, 6, 1, 12, 0).getTime(), 99_900), // Jul 1 → outside window, excluded
+    ];
+    const b = buildBarBuckets(items, 'lastMonth', NOW, win('lastMonth'));
+    expect(b).toHaveLength(30);
+    expect(b[0].value).toBe(300);
+    expect(b[0].fullLabel).toBe('Mon, Jun 1');
+    expect(b[29].value).toBe(70);
+    expect(b[29].fullLabel).toBe('Tue, Jun 30');
     expect(b.reduce((s, x) => s + x.value, 0)).toBe(370);
   });
 
@@ -176,9 +180,9 @@ describe('buildBarBuckets', () => {
     expect(b.map((x) => x.label)).toEqual(['May', 'Jun']);
   });
 
-  it('year = 12 trailing month buckets', () => {
+  it('all = 12 trailing month buckets', () => {
     const items = [exp(new Date(2026, 6, 10).getTime(), 12_300)];
-    const b = buildBarBuckets(items, 'year', NOW, win('year'));
+    const b = buildBarBuckets(items, 'all', NOW, win('all'));
     expect(b).toHaveLength(12);
     expect(b[11].label).toBe('Jul');
     expect(b[11].value).toBe(123);

@@ -3,7 +3,7 @@ import {
   startOfDay,
   endOfDay,
   startOfMonth,
-  startOfYear,
+  endOfMonth,
   subDays,
   addDays,
   addMonths,
@@ -12,7 +12,7 @@ import {
 } from 'date-fns';
 import type { Expense } from '../../../types/domain';
 
-export type Period = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'all' | 'custom';
+export type Period = 'today' | 'yesterday' | 'month' | 'lastMonth' | 'all' | 'custom';
 
 /** Millisecond timestamps as picked by the user — any time of day; periodWindow clamps. */
 export interface CustomRange {
@@ -44,17 +44,15 @@ export const periodWindow = (p: Period, now: Date, custom?: CustomRange | null):
       const e = endOfDay(y).getTime();
       return { start: s, end: e, label: `Yesterday, ${format(y, 'MMM d')}` };
     }
-    case 'week': {
-      const start = startOfDay(subDays(now, 6)).getTime();
-      return { start, end: endOfDay(now).getTime(), label: 'Last 7 days' };
-    }
     case 'month': {
       const start = startOfMonth(now).getTime();
       return { start, end: endOfDay(now).getTime(), label: format(now, 'MMMM yyyy') };
     }
-    case 'year': {
-      const start = startOfYear(now).getTime();
-      return { start, end: endOfDay(now).getTime(), label: format(now, 'yyyy') };
+    case 'lastMonth': {
+      const m = subMonths(now, 1);
+      const start = startOfMonth(m).getTime();
+      const end = endOfMonth(m).getTime();
+      return { start, end, label: format(m, 'MMMM yyyy') };
     }
     case 'custom': {
       const c = custom ?? { start: now.getTime(), end: now.getTime() };
@@ -110,12 +108,11 @@ export const buildBarBuckets = (
   now: Date,
   win: { start: number; end: number },
 ): Bucket[] => {
-  if (period === 'week' || period === 'month') {
-    // Trailing 7/30 days ending today — historical behavior, kept as-is.
-    const days = period === 'week' ? 7 : 30;
-    return dailyBuckets(items, startOfDay(subDays(now, days - 1)), days);
+  if (period === 'month') {
+    // Trailing 30 days ending today — historical behavior, kept as-is.
+    return dailyBuckets(items, startOfDay(subDays(now, 29)), 30);
   }
-  if (period === 'custom') {
+  if (period === 'custom' || period === 'lastMonth') {
     const days = differenceInCalendarDays(win.end, win.start) + 1;
     if (days <= 31) return dailyBuckets(items, new Date(win.start), days);
     // Month buckets can extend past the window edges; pre-filter so partial
@@ -127,7 +124,7 @@ export const buildBarBuckets = (
     }
     return out;
   }
-  // year / all / today / yesterday: trailing 12 months — historical behavior.
+  // all / today / yesterday: trailing 12 months — historical behavior.
   const out: Bucket[] = [];
   for (let i = 11; i >= 0; i--) {
     out.push(monthBucket(items, startOfMonth(subMonths(now, i))));
