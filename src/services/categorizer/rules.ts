@@ -19,10 +19,21 @@ export const createRuleCategorizer = (deps: { db: Database }): Categorizer => {
       'SELECT merchant_norm, category_id FROM merchant_rules WHERE origin = ?',
       [origin],
     );
+    // Among all rules whose merchant_norm is a substring of the needle, prefer the
+    // longest (most specific) match. Ties are broken alphabetically for determinism,
+    // independent of row insertion/scan order.
+    let best: { merchant_norm: string; category_id: string } | null = null;
     for (const r of rows) {
-      if (needle.includes(r.merchant_norm)) return r.category_id;
+      if (!needle.includes(r.merchant_norm)) continue;
+      if (
+        !best ||
+        r.merchant_norm.length > best.merchant_norm.length ||
+        (r.merchant_norm.length === best.merchant_norm.length && r.merchant_norm < best.merchant_norm)
+      ) {
+        best = r;
+      }
     }
-    return null;
+    return best?.category_id ?? null;
   };
 
   const categorize: Categorizer['categorize'] = (merchantNorm): CategorizerResult => {

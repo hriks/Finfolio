@@ -38,5 +38,10 @@
   { "merchant": "trivago", "categoryId": "cat-transport" },
   { "merchant": "atm withdrawal", "categoryId": "cat-atm" },
   { "merchant": "imps transfer", "categoryId": "cat-transfer" },
-  { "merchant": "neft transfer", "categoryId": "cat-transfer" }
+  { "merchant": "neft transfer", "categoryId": "cat-transfer" },
+  { "merchant": "blue tokai coffee roaster", "categoryId": "cat-food" },
+  { "merchant": "kesharwani chaat corner", "categoryId": "cat-food" },
+  { "merchant": "arshad nariyal pani", "categoryId": "cat-food" },
+  { "merchant": "smw rekha srivastava clin", "categoryId": "cat-medical" },
+  { "merchant": "swiggy instamart", "categoryId": "cat-groceries" }
 ]

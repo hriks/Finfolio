@@ -103,6 +103,26 @@ describe('seed: merchant rules', () => {
     db.close();
   });
 
+  it('includes AI-labeled rules from the 2026-07-18 categorizer optimization', () => {
+    const db = makeSeededDb();
+    seedMerchantRules(db);
+    const expectations: Array<[string, string]> = [
+      ['blue tokai coffee roaster', 'cat-food'],
+      ['kesharwani chaat corner', 'cat-food'],
+      ['arshad nariyal pani', 'cat-food'],
+      ['smw rekha srivastava clin', 'cat-medical'],
+      ['swiggy instamart', 'cat-groceries'],
+    ];
+    for (const [merchant, catId] of expectations) {
+      const row = db.get<{ category_id: string }>(
+        "SELECT category_id FROM merchant_rules WHERE merchant_norm = ? AND origin = 'bundled'",
+        [merchant],
+      );
+      expect({ merchant, categoryId: row?.category_id }).toEqual({ merchant, categoryId: catId });
+    }
+    db.close();
+  });
+
   it('every bundled rule points at a seeded category', () => {
     const db = makeSeededDb();
     seedMerchantRules(db);

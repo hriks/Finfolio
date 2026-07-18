@@ -174,6 +174,13 @@ const RULES: Rule[] = [
   { merchant: 'ntagic software', categoryId: 'cat-investments' },
   // Bills
   { merchant: 'pranjal pandey', categoryId: 'cat-bills' },
+  //
+  // ---- AI-labeled rules (2026-07-18 categorizer optimization) ----
+  { merchant: 'blue tokai coffee roaster', categoryId: 'cat-food' },
+  { merchant: 'kesharwani chaat corner', categoryId: 'cat-food' },
+  { merchant: 'arshad nariyal pani', categoryId: 'cat-food' },
+  { merchant: 'smw rekha srivastava clin', categoryId: 'cat-medical' },
+  { merchant: 'swiggy instamart', categoryId: 'cat-groceries' },
 ];
 
 export const seedMerchantRules = (db: Database): void => {

@@ -76,4 +76,63 @@ describe('suggestSubcategory', () => {
     });
     expect(suggestSubcategory(db, 'zomato')).toBe('lunch');
   });
+
+  it('groups subcategories case-insensitively and returns the most recent spelling on a tie', () => {
+    const { db, expense, clock } = setup();
+    // 'Grocery' and 'grocery' are the same subcategory case-insensitively (1 each = 2 total),
+    // which now meets MIN_COUNT. The more recent occurrence's spelling should win the tie.
+    expense.insert({
+      amountMinor: 200,
+      occurredAt: clock.now() - 1000,
+      merchantRaw: 'DM',
+      merchantNorm: 'some-case-merchant',
+      categoryId: null,
+      source: 'manual',
+      subcategory: 'Grocery',
+    });
+    expense.insert({
+      amountMinor: 200,
+      occurredAt: clock.now(),
+      merchantRaw: 'DM',
+      merchantNorm: 'some-case-merchant',
+      categoryId: null,
+      source: 'manual',
+      subcategory: 'grocery',
+    });
+    expect(suggestSubcategory(db, 'some-case-merchant')).toBe('grocery');
+  });
+
+  it('returns the most frequent original spelling within the winning case-insensitive group', () => {
+    const { db, expense, clock } = setup();
+    // 'Third wave coffee' x2 (older) vs 'Third Wave Coffee' x1 (newer) — same group,
+    // case-insensitive count is 3 (>= MIN_COUNT), and the most frequent spelling wins.
+    expense.insert({
+      amountMinor: 200,
+      occurredAt: clock.now() - 3000,
+      merchantRaw: 'TWC',
+      merchantNorm: 'third-wave-coffee-merchant',
+      categoryId: null,
+      source: 'manual',
+      subcategory: 'Third wave coffee',
+    });
+    expense.insert({
+      amountMinor: 200,
+      occurredAt: clock.now() - 2000,
+      merchantRaw: 'TWC',
+      merchantNorm: 'third-wave-coffee-merchant',
+      categoryId: null,
+      source: 'manual',
+      subcategory: 'Third wave coffee',
+    });
+    expense.insert({
+      amountMinor: 200,
+      occurredAt: clock.now() - 1000,
+      merchantRaw: 'TWC',
+      merchantNorm: 'third-wave-coffee-merchant',
+      categoryId: null,
+      source: 'manual',
+      subcategory: 'Third Wave Coffee',
+    });
+    expect(suggestSubcategory(db, 'third-wave-coffee-merchant')).toBe('Third wave coffee');
+  });
 });

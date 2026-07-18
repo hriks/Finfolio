@@ -79,4 +79,23 @@ describe('rule-based categorizer', () => {
     expect(r.source).toBe('uncategorized');
     expect(r.confidence).toBe(0);
   });
+
+  it('picks the longest (most specific) matching substring rule regardless of insertion order', () => {
+    const db = makeSeededDb();
+    const cat = createRuleCategorizer({ db });
+
+    // Bundled rules include both 'swiggy' -> cat-food and 'swiggy instamart' -> cat-groceries.
+    // The more specific 'swiggy instamart' rule must win when both are substrings of the needle.
+    expect(cat.categorize('swiggy instamart order')).toMatchObject({
+      categoryId: 'cat-groceries',
+      source: 'bundled_rule',
+    });
+
+    // Plain swiggy orders (no 'instamart') must still fall to the shorter 'swiggy' rule.
+    expect(cat.categorize('swiggy order')).toMatchObject({
+      categoryId: 'cat-food',
+      source: 'bundled_rule',
+    });
+    db.close();
+  });
 });
