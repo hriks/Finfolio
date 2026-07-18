@@ -1,5 +1,5 @@
 import { extractTraiSuffix, senderStem, normalizeMerchant } from './rules/normalize';
-import { matchSmsRule } from './rules/sms-rules';
+import { matchSmsRule, CREDIT_HINTS } from './rules/sms-rules';
 
 export interface SmsEvent {
   sender: string | null;
@@ -17,14 +17,16 @@ export interface ParserDraft {
   confidence: number;
 }
 
-const CREDIT_HINTS = /\b(credited|refund(ed)?|deposited|received from)\b/i;
-// Rejects daily-balance, upcoming-charge, premium-due and recharge-reminder SMSes
-// that look like transactions but aren't. Applied before rule path AND heuristic.
-// Note: "Avl Bal" alone is NOT a hint — legitimate debit SMSes use it as a balance footer.
-// We rely on "Available Bal" (the daily-summary form) and other phrases that only appear
-// in non-transactional messages.
+// Rejects daily-balance, upcoming-charge, OTP, money-request, bill-generated, premium-due
+// and recharge-reminder SMSes that look like transactions but aren't. Applied before rule
+// path AND heuristic.
+// Balance hints are deliberately narrow — genuine debit alerts carry balance FOOTERS
+// ("Avl Bal", "Available balance Rs X", "Updated balance is Rs X") that must not reject:
+// - "available bal ... as on" = the daily-summary form (HDFC "as on yesterday:...")
+// - "<new|current|...> balance is" = balance-report phrasing, not the "Updated balance is"
+//   footer on real debits.
 export const NON_TRANSACTION_HINTS =
-  /\b(available bal|balance is|balance:|scheduled on|due on|premium due|renewal due|will expire|recharge with|reminder|upcoming|installment[^\n]*scheduled|maintain sufficient balance|next sip|cheques are subject)\b/i;
+  /\bavailable bal\w*[^\n]*\bas on\b|\b(?:new|current|closing|total|avl|available|account|a\/c) balance is\b|\bbalance:|\b(?:scheduled on|due on|premium due|renewal due|will expire|recharge with|reminder|upcoming|maintain sufficient balance|next sip|cheques are subject|otp|requested money|will be debited|amount to be paid)\b|\binstallment[^\n]*scheduled\b/i;
 // Heuristic requires a past-tense debit verb so informational messages don't slip through.
 const DEBIT_VERB = /\b(debited|spent|paid|sent|withdrawn|purchased|charged)\b/i;
 const AMOUNT_RE = /(?:rs\.?|inr)\s*([\d,]+(?:\.\d+)?)/i;
@@ -59,7 +61,7 @@ export const parseSms = (event: SmsEvent): ParserDraft | null => {
       occurredAt: event.ts,
       sourceRef: event.sender,
       sourceMsg: event.body,
-      confidence: 0.95,
+      confidence: ruleHit.confidence ?? 0.95,
     };
   }
 
