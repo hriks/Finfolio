@@ -27,6 +27,14 @@ import { formatAmount } from '../../components/ExpenseRow';
 import { reverseGeocode, looksLikeCoordsString } from '../../../services/geocode';
 import type { RootStackParamList } from '../../navigation';
 import type { Expense, Category } from '../../../types/domain';
+import { parseRupees } from './parse-rupees';
+
+// Formats amountMinor (paise) as a rupee string for the editable input,
+// without a trailing ".00" when the amount is whole.
+const formatRupeesForInput = (amountMinor: number): string => {
+  const rupees = amountMinor / 100;
+  return Number.isInteger(rupees) ? String(rupees) : rupees.toFixed(2);
+};
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ExpenseDetail'>;
 type Route = RouteProp<RootStackParamList, 'ExpenseDetail'>;
@@ -50,7 +58,7 @@ export const ExpenseDetailScreen: React.FC = () => {
   const [canDelete, setCanDelete] = React.useState(false);
   const [editMerchant, setEditMerchant] = React.useState('');
   const [editNote, setEditNote] = React.useState('');
-  const [editAmount, setEditAmount] = React.useState(0);
+  const [editAmount, setEditAmount] = React.useState('');
   const [editSubcategory, setEditSubcategory] = React.useState('');
   const [showRaw, setShowRaw] = React.useState(false);
 
@@ -63,7 +71,7 @@ export const ExpenseDetailScreen: React.FC = () => {
       if (e) {
         setEditMerchant(e.merchantRaw ?? '');
         setEditNote(e.note ?? '');
-        setEditAmount(e.amountMinor);
+        setEditAmount(formatRupeesForInput(e.amountMinor));
         setEditSubcategory(e.subcategory ?? '');
       }
     } catch {
@@ -211,6 +219,15 @@ export const ExpenseDetailScreen: React.FC = () => {
     }
   };
 
+  const onAmountBlur = () => {
+    const parsed = parseRupees(editAmount);
+    if (parsed !== null && parsed !== expense.amountMinor) {
+      saveField({ amountMinor: parsed });
+    } else {
+      setEditAmount(formatRupeesForInput(expense.amountMinor));
+    }
+  };
+
   const onPickCategory = (newCat: Category) => {
     if (newCat.id === expense.categoryId) return;
     // Find other recent entries with the same merchantNorm
@@ -328,6 +345,18 @@ export const ExpenseDetailScreen: React.FC = () => {
             onChangeText={setEditSubcategory}
             onBlur={() => saveField({ subcategory: editSubcategory.trim() || null })}
             placeholder="Optional (e.g. Lunch, Petrol)"
+            placeholderTextColor={palette.muted}
+          />
+        </Section>
+
+        <Section title="Amount">
+          <TextInput
+            style={styles.input}
+            value={editAmount}
+            onChangeText={setEditAmount}
+            onBlur={onAmountBlur}
+            keyboardType="numeric"
+            placeholder="0"
             placeholderTextColor={palette.muted}
           />
         </Section>

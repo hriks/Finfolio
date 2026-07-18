@@ -120,4 +120,12 @@ describe('ExpenseService.update', () => {
     const { svc } = setup();
     expect(() => svc.update('does-not-exist', { note: 'x' })).toThrow();
   });
+
+  it('updates amountMinor', () => {
+    const { svc } = setup();
+    const e = svc.insert({ amountMinor: 100, occurredAt: 0, merchantRaw: null, merchantNorm: null, categoryId: null, source: 'manual' });
+    const after = svc.update(e.id, { amountMinor: 24050 });
+    expect(after.amountMinor).toBe(24050);
+    expect(svc.get(e.id)?.amountMinor).toBe(24050);
+  });
 });
