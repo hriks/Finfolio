@@ -154,6 +154,28 @@ describe('buildBarBuckets', () => {
     expect(b).toHaveLength(31);
   });
 
+  it('month = trailing 30 days ending today (NOT the calendar month) — legacy behavior, do not "fix"', () => {
+    const items = [
+      exp(new Date(2026, 5, 19).getTime(), 10_000), // 29 days before NOW → first bucket (bucket 0)
+      exp(new Date(2026, 5, 18).getTime(), 99_900), // 30 days before NOW → outside the trailing-30 window
+    ];
+    const b = buildBarBuckets(items, 'month', NOW, win('month'));
+    expect(b).toHaveLength(30);
+    expect(b[b.length - 1].fullLabel).toBe('Sat, Jul 18');
+    expect(b[0].value).toBe(100);
+    expect(b.reduce((s, x) => s + x.value, 0)).toBe(100);
+  });
+
+  it('custom of exactly 32 days switches to monthly buckets', () => {
+    const range = periodWindow('custom', NOW, {
+      start: new Date(2026, 4, 1).getTime(), // May 1
+      end: new Date(2026, 5, 1).getTime(), // Jun 1 (32 days inclusive)
+    });
+    const b = buildBarBuckets([], 'custom', NOW, range);
+    expect(b).toHaveLength(2);
+    expect(b.map((x) => x.label)).toEqual(['May', 'Jun']);
+  });
+
   it('year = 12 trailing month buckets', () => {
     const items = [exp(new Date(2026, 6, 10).getTime(), 12_300)];
     const b = buildBarBuckets(items, 'year', NOW, win('year'));

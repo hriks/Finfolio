@@ -138,7 +138,7 @@ const InsightsInner: React.FC = () => {
   React.useEffect(() => {
     setPieFocusedIdx(null);
     setBarFocusedIdx(null);
-  }, [period]);
+  }, [period, customRange]);
   const focusedPie = pieFocusedIdx != null ? pieData[pieFocusedIdx] : null;
   const focusedBar = barFocusedIdx != null ? barData[barFocusedIdx] : null;
   const [tooltipWidth, setTooltipWidth] = React.useState(120);
