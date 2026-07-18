@@ -23,7 +23,18 @@ describe('migrations', () => {
     expect(tables).not.toContain('budgets');
     expect(tables).not.toContain('budget_alert_state');
     const v = db.get<{ user_version: number }>('PRAGMA user_version');
-    expect(v?.user_version).toBe(5);
+    expect(v?.user_version).toBe(6);
+    db.close();
+  });
+
+  it('adds a nullable body column to ingestion_log', () => {
+    const db = makeRawDb();
+    runMigrations(db);
+    const cols = db
+      .all<{ name: string; notnull: number }>('PRAGMA table_info(ingestion_log)')
+      .filter((c) => c.name === 'body');
+    expect(cols).toHaveLength(1);
+    expect(cols[0]?.notnull).toBe(0);
     db.close();
   });
 
@@ -32,7 +43,7 @@ describe('migrations', () => {
     runMigrations(db);
     runMigrations(db);
     const v = db.get<{ user_version: number }>('PRAGMA user_version');
-    expect(v?.user_version).toBe(5);
+    expect(v?.user_version).toBe(6);
     db.close();
   });
 });

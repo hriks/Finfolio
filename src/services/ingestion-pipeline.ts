@@ -56,7 +56,7 @@ export const createIngestionPipeline = (deps: {
               })
             : null);
     } catch {
-      log.record(bh, event.source, event.sourceRef, 'dropped_error', null);
+      log.record(bh, event.source, event.sourceRef, 'dropped_error', null, event.body);
       return { outcome: 'dropped_error', expenseId: null };
     }
 
@@ -64,7 +64,7 @@ export const createIngestionPipeline = (deps: {
       // TRAI suffixes -P (promotional) and -G (government) are filtered out, not failed parses.
       const isFiltered = event.source === 'sms' && /-[PG]$/i.test(event.sourceRef ?? '');
       const outcome: IngestionOutcome = isFiltered ? 'dropped_promo' : 'dropped_no_parse';
-      log.record(bh, event.source, event.sourceRef, outcome, null);
+      log.record(bh, event.source, event.sourceRef, outcome, null, event.body);
       return { outcome, expenseId: null };
     }
 
@@ -112,7 +112,7 @@ export const createIngestionPipeline = (deps: {
           delayMs: delay,
         });
       }
-      log.record(bh, event.source, event.sourceRef, 'merged', merged.id);
+      log.record(bh, event.source, event.sourceRef, 'merged', merged.id, event.body);
       return { outcome: 'merged', expenseId: merged.id };
     }
 
@@ -134,7 +134,7 @@ export const createIngestionPipeline = (deps: {
       verifiedBy: 1,
       subcategory,
     });
-    log.record(bh, event.source, event.sourceRef, 'inserted', inserted.id);
+    log.record(bh, event.source, event.sourceRef, 'inserted', inserted.id, event.body);
     return { outcome: 'inserted', expenseId: inserted.id };
   };
 

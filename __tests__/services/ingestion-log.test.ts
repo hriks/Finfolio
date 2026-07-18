@@ -24,7 +24,7 @@ describe('IngestionLog', () => {
     seedExpense(db, 'expense-id-1');
     const h = hashBody('sms', 'VK-HDFCBK-T', 'first');
     expect(log.seen(h)).toBe(false);
-    log.record(h, 'sms', 'VK-HDFCBK-T', 'inserted', 'expense-id-1');
+    log.record(h, 'sms', 'VK-HDFCBK-T', 'inserted', 'expense-id-1', 'first');
     expect(log.seen(h)).toBe(true);
   });
 
@@ -34,7 +34,34 @@ describe('IngestionLog', () => {
     const log = createIngestionLog({ db, clock });
     seedExpense(db, 'e1');
     const h = hashBody('sms', 'A', 'x');
-    log.record(h, 'sms', 'A', 'inserted', 'e1');
-    expect(() => log.record(h, 'sms', 'A', 'inserted', 'e1')).toThrow();
+    log.record(h, 'sms', 'A', 'inserted', 'e1', 'x');
+    expect(() => log.record(h, 'sms', 'A', 'inserted', 'e1', 'x')).toThrow();
+  });
+
+  it('persists the raw body alongside the hash', () => {
+    const db = makeSeededDb();
+    const clock = fixedClock();
+    const log = createIngestionLog({ db, clock });
+    const body = 'Rs.250.00 debited from a/c **1234 to SWIGGY';
+    const h = hashBody('sms', 'VK-HDFCBK-T', body);
+    log.record(h, 'sms', 'VK-HDFCBK-T', 'dropped_no_parse', null, body);
+    const row = db.get<{ body: string | null }>(
+      'SELECT body FROM ingestion_log WHERE body_hash = ?',
+      [h],
+    );
+    expect(row?.body).toBe(body);
+  });
+
+  it('accepts a null body (historical rows stay null)', () => {
+    const db = makeSeededDb();
+    const clock = fixedClock();
+    const log = createIngestionLog({ db, clock });
+    const h = hashBody('sms', 'B', 'y');
+    log.record(h, 'sms', 'B', 'dropped_promo', null, null);
+    const row = db.get<{ body: string | null }>(
+      'SELECT body FROM ingestion_log WHERE body_hash = ?',
+      [h],
+    );
+    expect(row?.body).toBeNull();
   });
 });

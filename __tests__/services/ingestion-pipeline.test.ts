@@ -117,6 +117,62 @@ describe('IngestionPipeline.process', () => {
     expect(r?.category_id).toBe('cat-transport');
   });
 
+  it('persists the raw body on the audit row for every recorded outcome', () => {
+    const { pipeline, db } = setup();
+    const bodyFor = (ref: string): string | null =>
+      db.get<{ body: string | null }>('SELECT body FROM ingestion_log WHERE source_ref = ?', [ref])
+        ?.body ?? null;
+
+    // inserted
+    const insertedBody = 'Rs.250.00 debited from a/c **1234 on 14-05-26 to SWIGGY. Avl Bal: Rs.10,000';
+    pipeline.process({ source: 'sms', sourceRef: 'VK-HDFCBK-T', body: insertedBody, ts: 1_700_000_000_000 });
+    expect(bodyFor('VK-HDFCBK-T')).toBe(insertedBody);
+
+    // dropped_promo
+    const promoBody = 'Buy now Rs.100 off';
+    pipeline.process({ source: 'sms', sourceRef: 'AD-OFFER-P', body: promoBody, ts: 0 });
+    expect(bodyFor('AD-OFFER-P')).toBe(promoBody);
+
+    // dropped_no_parse
+    const noParseBody = 'Welcome to HDFC Bank net banking';
+    pipeline.process({ source: 'sms', sourceRef: 'VK-NOPARSE-T', body: noParseBody, ts: 0 });
+    expect(bodyFor('VK-NOPARSE-T')).toBe(noParseBody);
+
+    // merged — notification for the same txn within the dedup window
+    const mergedBody = 'Paid Rs.250 to SWIGGY for food';
+    const merged = pipeline.process({
+      source: 'notification',
+      sourceRef: 'in.swiggy.android',
+      body: mergedBody,
+      ts: 1_700_000_030_000,
+      preParsed: {
+        amountMinor: 25000,
+        merchantRaw: 'Swiggy',
+        merchantNorm: 'swiggy',
+        occurredAt: 1_700_000_030_000,
+        sourceRef: 'in.swiggy.android',
+        sourceMsg: mergedBody,
+        confidence: 0.9,
+      },
+    });
+    expect(merged.outcome).toBe('merged');
+    expect(bodyFor('in.swiggy.android')).toBe(mergedBody);
+
+    // dropped_error — a throwing preParsed accessor blows up inside the parse block
+    const errorBody = 'this body triggers an error';
+    const out = pipeline.process({
+      source: 'sms',
+      sourceRef: 'VK-ERROR-T',
+      body: errorBody,
+      ts: 0,
+      get preParsed(): never {
+        throw new Error('boom');
+      },
+    });
+    expect(out.outcome).toBe('dropped_error');
+    expect(bodyFor('VK-ERROR-T')).toBe(errorBody);
+  });
+
   it('drops no-parse messages with audit row', () => {
     const { pipeline, db } = setup();
     const out = pipeline.process({

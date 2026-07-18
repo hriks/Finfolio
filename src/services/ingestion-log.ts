@@ -22,6 +22,7 @@ export interface IngestionLog {
     ref: string | null,
     outcome: IngestionOutcome,
     expenseId: string | null,
+    body: string | null,
   ): void;
 }
 
@@ -29,11 +30,11 @@ export const createIngestionLog = (deps: { db: Database; clock: Clock }): Ingest
   const { db, clock } = deps;
   const seen: IngestionLog['seen'] = (h) =>
     !!db.get('SELECT 1 FROM ingestion_log WHERE body_hash = ?', [h]);
-  const record: IngestionLog['record'] = (h, source, ref, outcome, expenseId) => {
+  const record: IngestionLog['record'] = (h, source, ref, outcome, expenseId, body) => {
     db.run(
-      `INSERT INTO ingestion_log (id, source, source_ref, body_hash, expense_id, outcome, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [newId(), source, ref, h, expenseId, outcome, clock.now()],
+      `INSERT INTO ingestion_log (id, source, source_ref, body_hash, expense_id, outcome, created_at, body)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [newId(), source, ref, h, expenseId, outcome, clock.now(), body],
     );
   };
   return { seen, record };
