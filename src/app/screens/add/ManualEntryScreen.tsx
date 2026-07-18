@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import Geolocation from '@react-native-community/geolocation';
 
 // Force native Android LocationManager + GPS (so the system shows the GPS icon
@@ -129,6 +130,28 @@ export const ManualEntryScreen: React.FC = () => {
     }
   };
 
+  const openDatePicker = () => {
+    tapHaptic();
+    // Standard Android two-step flow: pick the date, then the time. Cancelling
+    // either step leaves occurredAt untouched (state only changes on 'set').
+    DateTimePickerAndroid.open({
+      value: new Date(occurredAt),
+      mode: 'date',
+      maximumDate: new Date(),
+      onChange: (dateEvent, pickedDate) => {
+        if (dateEvent.type !== 'set' || !pickedDate) return;
+        DateTimePickerAndroid.open({
+          value: pickedDate,
+          mode: 'time',
+          onChange: (timeEvent, pickedDateTime) => {
+            if (timeEvent.type !== 'set' || !pickedDateTime) return;
+            setOccurredAt(pickedDateTime.getTime());
+          },
+        });
+      },
+    });
+  };
+
   const pickPhoto = async () => {
     try {
       const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1 });
@@ -191,11 +214,12 @@ export const ManualEntryScreen: React.FC = () => {
 
       <Text style={styles.label}>Date</Text>
       <View style={styles.dateBox}>
-        <Text style={styles.dateText}>{new Date(occurredAt).toLocaleString()}</Text>
+        <Pressable onPress={openDatePicker} style={{ flex: 1 }} hitSlop={8}>
+          <Text style={styles.dateText}>{new Date(occurredAt).toLocaleString()}</Text>
+        </Pressable>
         <Pressable onPress={() => setOccurredAt(Date.now())} style={styles.dateBtn}>
           <Text style={styles.dateBtnText}>Now</Text>
         </Pressable>
-        {/* TODO(device): Wire up a native date picker (e.g. @react-native-community/datetimepicker) for non-now dates */}
       </View>
 
       <Text style={styles.label}>Category</Text>
